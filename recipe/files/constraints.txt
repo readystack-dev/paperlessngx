@@ -1,0 +1,66 @@
+# CEILINGS MATTER (2026-09-18): a CVE floor with no upper bound lets pip jump a MAJOR
+# version past what upstream supports. `Django>=5.2.13` resolved to Django 6.1.1 while
+# upstream pins `django~=5.2.5` (<5.3); Django 6 removed django.utils.cache.cc_delim_re,
+# which djangorestframework 3.16 still imports -> ImportError at startup, container "Up"
+# but serving nothing (HTTP 000). The image was Grade A AND bit-for-bit the whole time —
+# only the app was dead. When adding a CVE floor, bound it to upstream's compatible range.
+# Paperless-ngx CVE remediation — post-install upgrades (pip install --upgrade -r this).
+# The uv-exported requirements.txt is EXACT-pinned so `-c` overrides conflict; instead we
+# force-upgrade these named packages to their Scout-fixed versions AFTER the base install.
+# `--upgrade` takes the NEWEST release in range, so EVERY line carries an upper bound (checked
+# against v3.3.0, 2026-10-10): paperless-ngx's own pyproject specifier where it declares one,
+# else the tightest ceiling a dependent in uv.lock declares (named per line), else the next
+# major of the version upstream's uv.lock resolves.
+aiohttp>=3.14.4,<3.15   # GHSA-2g87-pp6c-29x5, GHSA-5wr8-gcqf-gqf3 HIGH (fixed 3.14.4); upstream's uv.lock resolves 3.14.4 from v3.3.4 (3.14.3 before; llama-index-core, no ceiling declared): the fix release line only
+Brotli>=1.2.0,<2
+click>=8.3.3,<9   # celery 5.6 and huggingface-hub 1.23 declare click<9
+cryptography>=48.0.1,<51   # pyOpenSSL 26.4 declares cryptography<51
+Django>=5.2.13,<5.3   # CVE floor, bounded to upstream django~=5.2.13
+fsspec>=2026.6.0,<2026.7   # GHSA-27vj-qcqg-25rc HIGH (fixed 2026.6.0); calendar-versioned, no dependent declares a ceiling: the fix release only
+granian>=2.7.4,<2.9   # upstream granian[uvloop]>=2.7,<2.9
+jaraco.context>=6.1.0,<7
+lxml>=6.1.0,<7
+msgpack>=1.2.1,<2   # channels-redis 4.3 declares msgpack~=1.0
+nltk>=3.10.0,<4
+pdfminer.six>=20251230,<=20260107   # calendar-versioned (no compatible range): ceiling = upstream's uv.lock version
+pi-heif>=1.3.0,<2
+# Pillow (uv.lock 12.3.0 before v3.3.4, which locks 13.0.0): 7 advisories published 2026-10-20 (GHSA-8g5g-8vmr-9782 CRITICAL; GHSA-58r4-6rv3-gfh8,
+# -65qm-jvmh-6pqg, -c6hw-5grf-ff96, -p4wg-p73j-c528, -pchr-8j38-3x4p, -q45j-58j2-45rg HIGH per OSV), fixed only in 13.0.0
+# (no 12.x after 12.3.0). 13.0's removals (I-mode PNG clipping, Image.get_child_images, Image._show, ImageCms
+# product_name/product_info, ExifTags.IFD.Makernote, Python 3.10) are used neither by paperless nor by any package in
+# its venv; no dependent caps Pillow below 13 (ocrmypdf>=12, pikepdf>=10.0.1, pillow-heif/pi-heif>=11.1.0, img2pdf,
+# pdf2image, fpdf2, llama-index-core>=9). Measured, 86 paperless image paths identical on 12.3.0 and 13.0.0 (2026-10-21).
+# Ceiling: the major the fix is in.
+pillow>=13.0.0,<14
+# djangorestframework (v3.3.4's uv.lock 3.18.1, v3.4.1's 3.18.3; pyproject djangorestframework~=3.16): GHSA-33wh-fxxf-88vv, GHSA-3547-9m27-7rxg,
+# GHSA-xw6w-gcfp-cf8m (all HIGH, published 2026-10-22), fixed only in 3.18.2. 3.18.3 is 3.18.2 plus one regression fix
+# (order_by_precedence restored). DRF 3.18 needs Django>=5.2, inside the Django line above. Ceiling: the 3.18 line.
+djangorestframework>=3.18.2,<3.19
+# filelock (v3.3.4's uv.lock 4.0.12 under pyproject filelock>=3.32,<4.1; v3.4.1's uv.lock 4.2.4 under <4.3): GHSA-v4x8-3wr5-3wq8 / CVE-2026-112940 (HIGH, published
+# 2026-10-23: ReadWriteLock reopens its SQLite lock database by name, so a planted symlink or journal file makes the lock
+# user's process overwrite or unlink its own files), range 3.20.4 to 4.2.1: no 3.x or 4.0/4.1 release is outside it, so for
+# v3.3.4 the floor crossed upstream's own <4.1 ceiling (the erpnext/frappecrm floor, 788785b); v3.4.0 raised it to <4.3. Paperless uses exactly this class:
+# paperless_ai/indexing.py guards the LLM index swap with ReadWriteLock(path, is_singleton=False) .read_lock() /
+# .write_lock(timeout=) / .close(), and media/search/import/export with FileLock(path) and Timeout. Those signatures are the
+# same in 4.0.12 and 4.2.4, and paperless's own patterns (two shared readers; a writer timing out while a reader holds; a
+# writer after readers drain; FileLock contention; acquire/release) give identical results on both (measured 2026-10-24).
+# torch and huggingface-hub declare filelock with no bound. pip --upgrade takes the 4.2 line's newest (4.2.4); Django is
+# not moved by it (5.2.18 is the newest 5.2.x, inside the Django line above). Ceiling: the 4.2 line.
+filelock>=4.2.1,<4.3
+# certifi (uv.lock 2026.1.4 before v3.3.4, which locks 2026.10.19; requests' CA bundle): GHSA-6q48-6c7w-9gw2, CRITICAL, published 2026-10-20, emSign roots with
+# compromised intermediate CA keys, fixed in 2026.10.19. Date-versioned CA bundle with no API: no ceiling (no dependent
+# declares one: requests>=2023.5.7, httpx, httpcore).
+certifi>=2026.10.19
+PyJWT>=2.14.0,<3   # django-allauth 65.16 declares pyjwt<3
+tornado>=6.5.6,<7   # flower 2.2 declares tornado<7.0.0
+urllib3>=2.7.0,<3   # requests 2.33 declares urllib3<3
+sqlparse>=0.6.0,<0.7   # 0.x: the minor is the breaking line
+anyio>=4.14.2,<5   # CVE-2026-63374 CRITICAL (improper cert validation, <4.14.2); openai and tika-client declare anyio<5
+# oauthlib (2026-10-27): oauthlib 3.3.1 (v3.3.4's uv.lock) carried GHSA-3jp2-3mrg-2vxc / CVE-2026-49272 (HIGH: a bearer
+# token can be retrieved through the device flow by a client that knows a valid client ID), fixed only in 4.0.0. Upstream
+# v3.4.0 moved to django-allauth[mfa,socialaccount]~=65.20.0 and oauthlib 4.0 itself (#14570; v3.4.1's uv.lock: 65.20.1,
+# 4.0.0), so the django-allauth>=65.19.6,<65.20 line this file carried for v3.3.4 is gone: its ceiling would now pull
+# allauth back below upstream's 65.20.1, which carries 65.20.0's and 65.20.1's security fixes (multi-stage login records,
+# provider-bound login state, WebAuthn rate-limit lockout). The oauthlib floor stays as a guard; allauth 65.20 admits
+# oauthlib 4 (>=4.0.0,<5). Ceiling: the next major.
+oauthlib>=4.0.0,<5

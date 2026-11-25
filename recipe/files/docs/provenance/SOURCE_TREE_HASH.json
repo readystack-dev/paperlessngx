@@ -1,0 +1,9 @@
+{
+  "schema": "kitforge.source_tree_hash.v1",
+  "slug": "paperlessngx",
+  "repo": "https://github.com/paperless-ngx/paperless-ngx",
+  "ref": "v3.4.1",
+  "commit": "b67cfdf3fdfcde4883c4ac136c8545835f679d21",
+  "tree_listing_sha256": "f0bda158ccfdec9da49c6c8e55f649135208b554b3653074858c364c3c3d0828",
+  "file_count": 1558
+}

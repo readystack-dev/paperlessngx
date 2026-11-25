@@ -1,0 +1,31 @@
+{
+  "bases": [
+    {
+      "digest": "sha256:77eb101c607d6e3d4f5ad0c8a02c2136c689b98aba1f359e6502ba517e5c57ec",
+      "layout": "bases/ubuntu_24.04_2198e4c65076.oci",
+      "ref": "ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5"
+    }
+  ],
+  "engine": {
+    "archive": "toolchain/buildkit.tar",
+    "image_digest": "sha256:e0e67ea9c4bb07bdef683e29f70f3b623d1eb9c82274a9ec04e6bb0511449fb0",
+    "kind": "buildkit",
+    "tag": "moby/buildkit:v0.31.2"
+  },
+  "inputs": {
+    "context": ".",
+    "dockerfile": "Dockerfile.offline.pinned",
+    "mtime_policy": "clamp",
+    "source_date_epoch": 1794578592,
+    "tree_hash": "sha256:a229353ea176a03d7af3603814a18bbdb2023053edbd3703592ac53b45230318"
+  },
+  "probe": {
+    "skip": "this image needs db, redis (not part of this archive); boot it with your own services as the admin handbook describes"
+  },
+  "schema": "readystack-rebuild-bundle/v0.1",
+  "subject": {
+    "config_digest": "sha256:9cda8c2313ef1754708ccaddbf7271fbf6d88ea4b7363b3f6084831509b83132",
+    "image_manifest_digest": "sha256:cec5de8275724eba69dcb544071d8b91fbffba59a0285bcb7795be26630b377f",
+    "name": "docker.io/readystack/paperlessngx:v3.4.1-CE-ubuntu24.04-r4"
+  }
+}

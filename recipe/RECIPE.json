@@ -1,0 +1,285 @@
+{
+ "schema": "readystack.recipe.v1",
+ "slug": "paperlessngx",
+ "tag": "v3.4.1-CE-ubuntu24.04-r4",
+ "tarball": "ReadyStack-paperlessngx-v3.4.1-CE-ubuntu24.04-r4.tar.gz",
+ "tarball_sha256": "68120d27784d4655d9b17947bea05ed512dfcb75f43c7350a3c09139a3e445d9",
+ "kit_root": "v3.4.1-CE-ubuntu24.04-r4",
+ "generated_at": "2026-11-13T19:54:10Z",
+ "generator": "KitForge release/recipe_publish.py",
+ "dockerfile": "Dockerfile.offline.pinned",
+ "build_script": "BUILD_OFFLINE.sh",
+ "preview_lines": 24,
+ "pins": {
+  "upstream": {
+   "repo": "https://github.com/paperless-ngx/paperless-ngx",
+   "ref": "v3.4.1",
+   "commit": "b67cfdf3fdfcde4883c4ac136c8545835f679d21",
+   "url": "https://github.com/paperless-ngx/paperless-ngx/tree/b67cfdf3fdfcde4883c4ac136c8545835f679d21",
+   "from": "docs/provenance/BUILD_RECIPE.json"
+  },
+  "fetches": [
+   {
+    "kind": "git",
+    "url": "https://github.com/paperless-ngx/paperless-ngx",
+    "ref": "v${PAPERLESS_VERSION}"
+   },
+   {
+    "kind": "http",
+    "url": "https://www.python.org/ftp/python/3.12.16/Python-3.12.16.tar.xz"
+   },
+   {
+    "kind": "http",
+    "url": "https://download.pytorch.org/whl/cpu"
+   }
+  ],
+  "bases": [
+   {
+    "ref": "ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5",
+    "image": "ubuntu:24.04",
+    "digest": "sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5"
+   }
+  ],
+  "toolchain": {
+   "buildkit": "moby/buildkit:v0.31.2",
+   "buildkit_image_digest": "sha256:e0e67ea9c4bb07bdef683e29f70f3b623d1eb9c82274a9ec04e6bb0511449fb0"
+  },
+  "build_method": "source-rebuild-python",
+  "source_date_epoch": 1794578592,
+  "source_date_epoch_utc": "2026-11-13T14:03:12Z",
+  "target": {
+   "image_manifest_digest": "sha256:cec5de8275724eba69dcb544071d8b91fbffba59a0285bcb7795be26630b377f",
+   "config_digest": "sha256:9cda8c2313ef1754708ccaddbf7271fbf6d88ea4b7363b3f6084831509b83132",
+   "image": "readystack/paperlessngx:v3.4.1-CE-ubuntu24.04-r4"
+  },
+  "checksummed_files": 1732
+ },
+ "files": [
+  {
+   "path": "BASES.tsv",
+   "size": 121,
+   "sha256": "4f393d6694410491cc56934e9d3a738b55afccfacbad3e10c4af01cf45e2d9cf",
+   "lines": 1,
+   "public": "full"
+  },
+  {
+   "path": "BUILD_OFFLINE.sh",
+   "size": 8856,
+   "sha256": "6ab4f08a6ec775b32d854f03413b30ecfe555ddba78cf0de956235f5a2a39542",
+   "lines": 162,
+   "public": "preview",
+   "preview_lines": 24
+  },
+  {
+   "path": "CHECKSUMS.sha256",
+   "size": 262711,
+   "sha256": "2b126ab9c110015dc74e4652e3ac6cde55a56bf333d293ba5136ac3f3db6a3d5",
+   "lines": 1732,
+   "public": "account",
+   "stored": "gzip"
+  },
+  {
+   "path": "DOCKERFILE_NAME.txt",
+   "size": 26,
+   "sha256": "9aadd1ede68e016a6f163c97befc5ff2fcdc8ebd4f84b108dba63cb195fa8c84",
+   "lines": 1,
+   "public": "full"
+  },
+  {
+   "path": "Dockerfile",
+   "size": 6819,
+   "sha256": "9eb4f32115fcac9167e4873dee511a967961c7dc824e71b738eab70e5acfad71",
+   "lines": 65,
+   "public": "account"
+  },
+  {
+   "path": "Dockerfile.offline",
+   "size": 6819,
+   "sha256": "9eb4f32115fcac9167e4873dee511a967961c7dc824e71b738eab70e5acfad71",
+   "lines": 65,
+   "public": "account"
+  },
+  {
+   "path": "Dockerfile.offline.pinned",
+   "size": 6819,
+   "sha256": "9eb4f32115fcac9167e4873dee511a967961c7dc824e71b738eab70e5acfad71",
+   "lines": 65,
+   "public": "preview",
+   "preview_lines": 24
+  },
+  {
+   "path": "Dockerfile.vendor",
+   "size": 15183,
+   "sha256": "8b18f00e5d8f7a9cf6568a95deea19cc431369ee1b4e897450d52cb0ac6000f1",
+   "lines": 172,
+   "public": "account"
+  },
+  {
+   "path": "FILE_MODES.tsv",
+   "size": 179987,
+   "sha256": "ad5be30205beb1feedaa4ba52337d67343b80f27df33667f7146715e06a09b26",
+   "lines": 2137,
+   "public": "account"
+  },
+  {
+   "path": "MANIFEST.txt",
+   "size": 144965,
+   "sha256": "63e1c26b090ba43373f32d766fbe303e9dd0215abaad2f7d468cf8a55a5b2f1d",
+   "lines": 1734,
+   "public": "account"
+  },
+  {
+   "path": "README.md",
+   "size": 3325,
+   "sha256": "1678e92f9861329ed3fdbac498c8e5311fecaf2687b3ff958945569653d61fdf",
+   "lines": 39,
+   "public": "account"
+  },
+  {
+   "path": "SOURCE_DATE_EPOCH.txt",
+   "size": 11,
+   "sha256": "32bdb440c69c66fc3fc0668e327d13ffb331cb9db8ea6c7e8d0b4de59807c22f",
+   "lines": 1,
+   "public": "full"
+  },
+  {
+   "path": "TARGET_DIGEST.txt",
+   "size": 449,
+   "sha256": "d127dc7920d6cbf053d187862aa6fd8ec19ba0e778af0c8174341cd8258c810d",
+   "lines": 8,
+   "public": "full"
+  },
+  {
+   "path": "VERIFY_OFFLINE.sh",
+   "size": 10153,
+   "sha256": "3e8184ea230cfd8f41f977e26be6bf7bd03112c396c517837ce0c7de4f7399dd",
+   "lines": 165,
+   "public": "account"
+  },
+  {
+   "path": "constraints.txt",
+   "size": 6035,
+   "sha256": "db3dfdb53259a3973c76df20989acd6f83f4a9bac5a3cf713ad86048949f7544",
+   "lines": 66,
+   "public": "account"
+  },
+  {
+   "path": "docs/PROVENANCE.md",
+   "size": 2630,
+   "sha256": "ea2dae9a538ceaf7d8f2c60e03f83889017a64d52a3594fd24c09540d7ee282a",
+   "lines": 36,
+   "public": "account"
+  },
+  {
+   "path": "docs/REBUILD.md",
+   "size": 6190,
+   "sha256": "abd8fe492d1d721c0df64dbc19d893fce5d0111067013527de96983dd1b637a9",
+   "lines": 62,
+   "public": "account"
+  },
+  {
+   "path": "docs/VERIFY.md",
+   "size": 2056,
+   "sha256": "d26de9345a23453f10fa4ae6692fd6eaaa29ecf63f064b900a396ea7aee680e5",
+   "lines": 34,
+   "public": "account"
+  },
+  {
+   "path": "docs/provenance/BASE_IMAGE_DIGESTS.lock",
+   "size": 55,
+   "sha256": "d119481183e4361a21fd088f7e69d357f1aaeb9cd09c70a69f546f0ee2a62801",
+   "lines": 2,
+   "public": "full"
+  },
+  {
+   "path": "docs/provenance/BUILD_RECIPE.json",
+   "size": 2841,
+   "sha256": "a2977a04990a25dcc3880712f1d6601de7c86905935ae90acb21bc31c092ceec",
+   "lines": 25,
+   "public": "account"
+  },
+  {
+   "path": "docs/provenance/CUSTODY_INPUTS.json",
+   "size": 664,
+   "sha256": "ffc565cf376351370889b2b862002060a651d5b03caf7b5c480bcb06020ee0b5",
+   "lines": 17,
+   "public": "account"
+  },
+  {
+   "path": "docs/provenance/SOURCE_FILE_MANIFEST.json",
+   "size": 98288,
+   "sha256": "69db9887ae5de2ac447f3ba18da4ef3c603201ac978ae32981ca7280722e68cd",
+   "lines": 1565,
+   "public": "account"
+  },
+  {
+   "path": "docs/provenance/SOURCE_TREE_HASH.json",
+   "size": 322,
+   "sha256": "ada7d70a8740170bd0ddbb9d5dfff295174be08fc824f6c3e47b2a6e07feddf8",
+   "lines": 9,
+   "public": "full"
+  },
+  {
+   "path": "docs/provenance/SYSTEM_PINNING.lock",
+   "size": 1,
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+   "lines": 1,
+   "public": "account"
+  },
+  {
+   "path": "docs/provenance/TOOLCHAIN.lock",
+   "size": 1254,
+   "sha256": "aad8788c3756a563b8cc7fe8cabc51245d9123bf488eed2c915ca732cda8be23",
+   "lines": 32,
+   "public": "account"
+  },
+  {
+   "path": "entrypoint.sh",
+   "size": 1236,
+   "sha256": "7130bde93f13b5a438e54abfe157763814cdafb59550853aa28eed405b13c7e1",
+   "lines": 15,
+   "public": "account"
+  },
+  {
+   "path": "rebuild.json",
+   "size": 1225,
+   "sha256": "60d5f1d5d1d26f6d6a7cecb77a007a763fa023939d2c6bf9daff869c4f1b98b7",
+   "lines": 31,
+   "public": "account"
+  },
+  {
+   "path": "supervisor-paperless.conf",
+   "size": 1160,
+   "sha256": "e6398b4529f3d86166c76d211aeb2614872609cbcdc6c7e49725a7e8da31e808",
+   "lines": 47,
+   "public": "account"
+  },
+  {
+   "path": "toolchain/BUILDKIT_TAG.txt",
+   "size": 22,
+   "sha256": "fcd530eeb02b063d2f047adad6eef896422a8e8d558513e5f09b2a262be32573",
+   "lines": 1,
+   "public": "full"
+  }
+ ],
+ "skipped": [],
+ "kit_adds": {
+  "bases": {
+   "files": 5,
+   "bytes": 29796779
+  },
+  "docs": {
+   "files": 1617,
+   "bytes": 103370132
+  },
+  "toolchain": {
+   "files": 1,
+   "bytes": 111529472
+  },
+  "vendored": {
+   "files": 82,
+   "bytes": 2291694404
+  }
+ },
+ "redacted_files": 0
+}

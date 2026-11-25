@@ -1,0 +1,8 @@
+image_manifest_digest=sha256:cec5de8275724eba69dcb544071d8b91fbffba59a0285bcb7795be26630b377f
+config_digest=sha256:9cda8c2313ef1754708ccaddbf7271fbf6d88ea4b7363b3f6084831509b83132
+tag=readystack/paperlessngx:v3.4.1-CE-ubuntu24.04-r4
+probe_port=8000
+probe_path=/accounts/login/
+probe_timeout=900
+verify_boot=skip
+verify_boot_reason=this image needs db, redis (not part of this archive); boot it with your own services as the admin handbook describes

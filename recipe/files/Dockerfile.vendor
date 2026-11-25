@@ -1,0 +1,172 @@
+# =====================================================================
+# Paperless-ngx v3.4.1 (GPL-3.0) VENDOR build — mirrors upstream's 3-stage build:
+#  (1) clone source, (2) Angular frontend via pnpm (throwaway, zero runtime footprint),
+#  (3) Python venv (uv export postgres+webserver -> pip install -c constraints for CVE bumps),
+#  (4) LEAN Ubuntu 24.04 runtime (CPython compiled from source against Ubuntu's libraries): OCR system deps (eng-only,
+#      postgres-only, NO flower) + supervisord AIO.
+# Exports the built filesystem as tars for the hermetic offline reassembly (frappecrm/erpnext
+# pattern) — so the vendored wheels (psycopg-c/zxing-cpp), NLTK data + OCR debs are all baked in,
+# no separate wheel/deb vendoring needed for --network=none.
+# =====================================================================
+ARG NODE_TAG=22-trixie-slim
+# the tag's index digest on Docker Hub, read 2026-11-02 (Hub API last_updated 2026-10-28)
+ARG NODE_DIGEST=sha256:2117f713a417f3aff682ac8f5bc2ebbdf1beed51f36e67ab1e0fd3866b6d2d8f
+ARG PAPERLESS_VERSION=3.4.1
+# The tag must resolve to this commit (tag v3.4.1, 2026-10-31T05:20:31Z): a moved tag fails the build.
+ARG PAPERLESS_COMMIT=b67cfdf3fdfcde4883c4ac136c8545835f679d21
+
+# alpine/git 2.54.0 by its index digest (Docker Hub's registry, read 2026-11-02): only a git client for the clone below;
+# the tag and the commit check below pin the source, the digest pins the client that fetched it.
+FROM alpine/git:2.54.0@sha256:ac6c828f15d82775d204d3d75112e1d34af8945da80ccf922713c9891ba68e7a AS src
+ARG PAPERLESS_VERSION
+ARG PAPERLESS_COMMIT
+RUN git clone --depth 1 --branch v${PAPERLESS_VERSION} https://github.com/paperless-ngx/paperless-ngx /src \
+ && test "$(git -C /src rev-parse HEAD)" = "${PAPERLESS_COMMIT}" \
+ && rm -rf /src/.git
+
+FROM node:${NODE_TAG}@${NODE_DIGEST} AS frontend
+COPY --from=src /src/src-ui /src/src-ui
+WORKDIR /src/src-ui
+# v3.1.3 declares packageManager pnpm@11.15.1 and ships Angular 22; the 2.20-era pins
+# (Node 20 + pnpm 10.17.1) fail the frontend build with ERR_UNKNOWN_BUILTIN_MODULE.
+RUN corepack enable && corepack prepare pnpm@11.15.1 --activate \
+ && pnpm install --frozen-lockfile \
+ && ./node_modules/.bin/ng build --configuration production
+# angular.json outputPath -> /src/src/documents/static/frontend/
+
+# ---- CPython 3.12.16 compiled from python.org's source against Ubuntu 24.04's own libraries (libssl3t64,
+#      libsqlite3-0, libexpat1, zlib1g, ... -- debs the scan sees and apt fixes). This stage only FETCHES the
+#      tarball (python.org's sha256, pinned in strategies/paperlessngx.json source.python_runtime) and the build
+#      toolchain's debs; `cpython` compiles them with gen_dockerfile.cpython_build_cmd, and the offline build runs
+#      the same command on the same vendored inputs -- the interpreter that ships is compiled with the network off. ----
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5 AS cpython-src
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /vendored-python && curl -fsSL --retry 3 -o /vendored-python/Python-3.12.16.tar.xz https://www.python.org/ftp/python/3.12.16/Python-3.12.16.tar.xz && \
+    echo "b5796915dc45ff745cfb4e990a7e7c93d6f546328a102ce31448d69ebc37575c  /vendored-python/Python-3.12.16.tar.xz" | sha256sum -c -
+# a FRESH pinned base, nothing installed first: the closure is then complete for the equally fresh offline stage
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5 AS cpython-debs
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get -y --download-only --no-install-recommends install \
+      build-essential pkg-config xz-utils libssl-dev zlib1g-dev libbz2-dev libsqlite3-dev libffi-dev liblzma-dev libzstd-dev uuid-dev libexpat1-dev libncurses-dev libreadline-dev && \
+    mkdir -p /debs && cp /var/cache/apt/archives/*.deb /debs/ && echo "vendored $(ls -1 /debs/*.deb | wc -l) CPython build debs"
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5 AS cpython
+ARG SOURCE_DATE_EPOCH=1791257664
+ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
+COPY --from=cpython-debs /debs /tmp/cpython-debs
+COPY --from=cpython-src /vendored-python/Python-3.12.16.tar.xz /tmp/Python-3.12.16.tar.xz
+RUN set --; for f in /tmp/cpython-debs/*.deb; do [ -e "$f" ] && set -- "$@" "$f"; done; \
+    for pass in 1 2 3 4 5; do [ $# -eq 0 ] || dpkg -i --skip-same-version "$@" >/dev/null 2>&1 && break; done; \
+    dpkg --configure -a && bad= && for d in "$@"; do p=$(dpkg-deb -f "$d" Package) v=$(dpkg-deb -f "$d" Version); \
+      case "$(dpkg-query -W -f='${Version} ${db:Status-Abbrev}' "$p" 2>/dev/null)" in "$v ii"*) ;; *) bad="$bad $p=$v" ;; esac; done && \
+    { [ -z "$bad" ] || { echo "vendored debs not installed at their vendored version:$bad" >&2; false; }; } && \
+    : "${SOURCE_DATE_EPOCH:?the CPython build needs SOURCE_DATE_EPOCH}" && \
+    echo "b5796915dc45ff745cfb4e990a7e7c93d6f546328a102ce31448d69ebc37575c  /tmp/Python-3.12.16.tar.xz" | sha256sum -c - && \
+    mkdir -p /usr/src/python && tar -xJf /tmp/Python-3.12.16.tar.xz -C /usr/src/python --strip-components=1 --no-same-owner && \
+    rm -rf /tmp/cpython-debs /tmp/Python-3.12.16.tar.xz && cd /usr/src/python && \
+    export DEB_BUILD_MAINT_OPTIONS=optimize=-lto && \
+    PYCF="$(dpkg-buildflags --get CFLAGS) $(dpkg-buildflags --get CPPFLAGS)" && PYLD="$(dpkg-buildflags --get LDFLAGS)" && \
+    ./configure --build=x86_64-linux-gnu --prefix=/usr/local --enable-shared --enable-loadable-sqlite-extensions --enable-option-checking=fatal --disable-test-modules --without-static-libpython --with-ensurepip=install --with-system-expat --without-system-libmpdec --with-dbmliborder= py_cv_module__dbm=n/a py_cv_module__gdbm=n/a py_cv_module__tkinter=n/a && \
+    make -j"$(nproc)" "EXTRA_CFLAGS=$PYCF" "LDFLAGS=$PYLD,--strip-all" && \
+    rm python && make -j"$(nproc)" "EXTRA_CFLAGS=$PYCF" "LDFLAGS=$PYLD,--strip-all,-rpath='\$\$ORIGIN/../lib'" python && \
+    make install COMPILEALL_OPTS=--invalidation-mode=checked-hash && \
+    cd / && rm -rf /usr/src/python /usr/local/lib/python3.12/idlelib /usr/local/lib/python3.12/tkinter /usr/local/lib/python3.12/turtledemo /usr/local/bin/idle3* && \
+    for s in pip3 pydoc3 python3 python3-config; do ln -sfT "$s" "/usr/local/bin/${s%3*}${s#*3}"; done && \
+    ldconfig && /usr/local/bin/python3 -I -B -c "import ssl, sqlite3, zlib, bz2, lzma, ctypes, uuid, pyexpat, decimal, readline, curses, hashlib, sys, importlib.util as u; bad = [m for m in ('_dbm', '_gdbm', '_tkinter') if u.find_spec(m)]; assert not bad, ('built but must not be', bad); print(sys.version.replace(chr(10), ' '), '|', ssl.OPENSSL_VERSION, '| sqlite', sqlite3.sqlite_version, '| expat', pyexpat.EXPAT_VERSION)" && \
+    ldd /usr/local/lib/python3.12/lib-dynload/_ssl.cpython-*.so | grep -qE 'libssl.so.3 => /(usr/)?lib/x86_64-linux-gnu/' && ldd /usr/local/lib/python3.12/lib-dynload/_sqlite3.cpython-*.so | grep -qE 'libsqlite3.so.0 => /(usr/)?lib/x86_64-linux-gnu/' && ldd /usr/local/lib/python3.12/lib-dynload/pyexpat.cpython-*.so | grep -qE 'libexpat.so.1 => /(usr/)?lib/x86_64-linux-gnu/' && ldd /usr/local/lib/python3.12/lib-dynload/_ctypes.cpython-*.so | grep -qE 'libffi.so.8 => /(usr/)?lib/x86_64-linux-gnu/' && ldd /usr/local/lib/python3.12/lib-dynload/_lzma.cpython-*.so | grep -qE 'liblzma.so.5 => /(usr/)?lib/x86_64-linux-gnu/' && ldd /usr/local/lib/python3.12/lib-dynload/_bz2.cpython-*.so | grep -qE 'libbz2.so.1.0 => /(usr/)?lib/x86_64-linux-gnu/' && ldd /usr/local/lib/python3.12/lib-dynload/_uuid.cpython-*.so | grep -qE 'libuuid.so.1 => /(usr/)?lib/x86_64-linux-gnu/' && ldd /usr/local/lib/python3.12/lib-dynload/zlib.cpython-*.so | grep -qE 'libz.so.1 => /(usr/)?lib/x86_64-linux-gnu/'
+
+# Every Python stage below starts here: one interpreter for the builders and the runtime, so compiled wheels match.
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5 AS python-base
+ENV LANG=C.UTF-8
+COPY --from=cpython /usr/local/ /usr/local/
+# ca-certificates netbase tzdata: what the official python images add to their distro base (CA roots for pip and
+# ssl, /etc/services, the zoneinfo database Django's TIME_ZONE needs); ubuntu:24.04 has none of them. Then the
+# libraries the compiled interpreter loads (gen_dockerfile.PY_SRC_RUNTIME_LIBS) -- Ubuntu debs in the SBOM.
+# ldconfig: libpython3.12.so is in /usr/local/lib. userdel: ubuntu:24.04 ships an `ubuntu` account holding uid/gid
+# 1000; removing it lets the app account keep the uid 1000 it had on the Debian base (volume ownership unchanged).
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates netbase tzdata \
+      libssl3t64 zlib1g libbz2-1.0 libsqlite3-0 libffi8 liblzma5 libzstd1 libuuid1 libexpat1 libncursesw6 libtinfo6 libreadline8t64 && \
+    rm -rf /var/lib/apt/lists/* && ldconfig && userdel --remove ubuntu && python3 --version
+
+FROM python-base AS builder
+ENV PIP_NO_CACHE_DIR=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential pkg-config libpq-dev libxml2-dev libxslt1-dev git curl ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY --from=src /src/pyproject.toml /src/uv.lock ./
+COPY constraints.txt ./constraints.txt
+RUN python -m venv /opt/venv
+ENV PATH=/opt/venv/bin:$PATH
+# uv 0.13.6, PyPI's newest release on 2026-11-02 (published 2026-10-27) and, by date, the uv the 2026-11-01 release's vendor
+# stage installed (until then this line named no version); upstream v3.4.1's Dockerfile builds with uv 0.13.5. pip
+# checks the wheel against the sha256 PyPI's index lists for it.
+RUN pip install "uv==0.13.6" \
+ && uv export --no-dev --extra postgres --extra webserver --format requirements-txt -o requirements.txt \
+ && : "v3 added torch~=2.13.0, which upstream sources from its own uv index" \
+ && : "[[tool.uv.index]] pytorch-cpu -> https://download.pytorch.org/whl/cpu." \
+ && : "The uv export carries the +cpu local version, which does NOT exist on PyPI, so" \
+ && : "pip must be told the same index or it fails: No matching distribution for" \
+ && : "torch==2.13.0+cpu. Mirrors upstream's declared source exactly." \
+ && pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt \
+ && pip install --upgrade -r constraints.txt \
+ && python -m nltk.downloader -d /usr/share/nltk_data snowball_data stopwords punkt_tab || true
+
+FROM python-base AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PNGX_CONTAINERIZED=1 PATH=/opt/venv/bin:$PATH PAPERLESS_OCR_LANGUAGE=eng
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends dist-upgrade \
+ && apt-get install -y --no-install-recommends \
+    curl tzdata fonts-liberation gettext ghostscript gnupg icc-profiles-free postgresql-client \
+    tesseract-ocr tesseract-ocr-eng unpaper pngquant jbig2dec libxml2 libxslt1.1 qpdf file libmagic1t64 \
+    media-types zlib1g libzbar0t64 poppler-utils supervisor \
+ && rm -rf /var/lib/apt/lists/*
+# No ImageMagick, as upstream: paperless-ngx 3.4.0 dropped it (#14440; PDF thumbnails come from poppler-utils, #14420)
+# and removed docker/rootfs/etc/ImageMagick-6/paperless-policy.xml, which this stage copied before.
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /usr/share/nltk_data /usr/share/nltk_data
+# Purge BUILD-ONLY leftovers that carry CVEs but are NOT used at runtime:
+#  - uv (the exporter) is a Rust binary bundling quick-xml 0.39.2 (cargo CVE) -> build-only.
+#  - jaraco_context 6.0.1 (system /usr/lib/python3, CVE-2026-23949): overwrite with venv 6.1.2
+#    is shadowed by the venv's 6.1.2; paperless runs from /opt/venv so the system copy is dead.
+#  - the venv's pip (25.0.1, from CPython 3.12.16's ensurepip; 5 fixable advisories, GHSA-4xh5-x5gv-qwph et al.):
+#    it only installed the venv; nothing runs pip at runtime (the erpnext/authentik build-tool strip).
+RUN set -e; \
+    rm -rf /opt/venv/bin/uv /opt/venv/bin/uvx \
+      /opt/venv/lib/python3.12/site-packages/uv /opt/venv/lib/python3.12/site-packages/uv-*.dist-info \
+      /opt/venv/bin/pip /opt/venv/bin/pip3 /opt/venv/bin/pip3.12 \
+      /opt/venv/lib/python3.12/site-packages/pip /opt/venv/lib/python3.12/site-packages/pip-*.dist-info; \
+    SYS=/usr/lib/python3/dist-packages; VENV=/opt/venv/lib/python3.12/site-packages; \
+    if [ -d "$SYS/jaraco/context" ]; then \
+      rm -rf "$SYS/jaraco/context" "$SYS"/jaraco_context-*.dist-info; \
+      cp -r "$VENV/jaraco/context" "$SYS/jaraco/context"; \
+      cp -r "$VENV"/jaraco_context-*.dist-info "$SYS/" 2>/dev/null || true; \
+    fi
+RUN groupadd -g 1000 paperless && useradd -u 1000 -g paperless -d /usr/src/paperless -m paperless
+WORKDIR /usr/src/paperless/src
+COPY --from=src --chown=1000:1000 /src/src ./
+COPY --from=frontend --chown=1000:1000 /src/src/documents/static/frontend/ ./documents/static/frontend/
+COPY supervisor-paperless.conf /etc/supervisor/paperless.conf
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN mkdir -p /usr/src/paperless/data /usr/src/paperless/media /usr/src/paperless/consume /usr/src/paperless/export \
+ && chown -R paperless:paperless /usr/src/paperless && chmod 755 /usr/local/bin/entrypoint.sh \
+ && : "collectstatic fills STATIC_ROOT (/usr/src/paperless/static), the only place whitenoise serves /static/ from" \
+ && : "(DEBUG off, no finders). su resets PATH, so a bare python was /usr/local/bin/python without Django: the step" \
+ && : "failed behind || echo, and the login page CSS and the whole Angular UI answered 302 (found 2026-10-10). Name" \
+ && : "the venv's interpreter and fail the build if it fails." \
+ && su paperless -c "cd /usr/src/paperless/src && PAPERLESS_SECRET_KEY=build /opt/venv/bin/python manage.py collectstatic --no-input --clear" \
+ && test -f /usr/src/paperless/static/base.css && test -d /usr/src/paperless/static/frontend
+USER paperless
+EXPOSE 8000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+FROM runtime AS export-src
+USER root
+RUN mkdir -p /export && \
+    tar czf /export/paperless.tar.gz -C / usr/src/paperless opt/venv usr/share/nltk_data && \
+    tar czf /export/system.tar.gz --exclude='./usr/local/bin/python3*' --exclude='./usr/local/bin/python' --exclude='./usr/local/bin/python-config' --exclude='./usr/local/bin/pip*' --exclude='./usr/local/bin/pydoc*' --exclude='./usr/local/bin/idle3*' --exclude='./usr/local/lib/libpython3*' --exclude='./usr/local/lib/python3.12' --exclude='./usr/local/lib/pkgconfig/python*' --exclude='./usr/local/include/python3.12' --exclude='./usr/local/share/man/man1/python3*' --exclude=./var/cache --exclude=./var/log --exclude=./var/lib/apt/lists \
+        --exclude=./usr/src/paperless --exclude=./opt/venv --exclude=./usr/share/nltk_data -C / usr etc opt var && \
+    tar czf /export/site.tar.gz -C / usr/local/lib/python3.12/site-packages && \
+    echo "vendored: $(du -sh /export | cut -f1)"
+FROM scratch AS export
+COPY --from=export-src /export/ /paperlessngx-src/
+COPY --from=cpython-src /vendored-python/ /paperlessngx-src/python/
+COPY --from=cpython-debs /debs/ /paperlessngx-src/python/debs/

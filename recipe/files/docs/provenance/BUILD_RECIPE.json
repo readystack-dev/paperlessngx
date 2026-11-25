@@ -1,0 +1,25 @@
+{
+  "schema": "kitforge.build_recipe.v1",
+  "slug": "paperlessngx",
+  "image": "readystack/paperlessngx:v3.4.1-CE-ubuntu24.04-r4",
+  "build_method": "source-rebuild-python",
+  "source": {
+    "repo": "https://github.com/paperless-ngx/paperless-ngx",
+    "ref": "v3.4.1",
+    "python_version": "3.12",
+    "python_runtime": {
+      "provider": "ubuntu-source",
+      "version": "3.12.16",
+      "sha256": "b5796915dc45ff745cfb4e990a7e7c93d6f546328a102ce31448d69ebc37575c",
+      "_note": "CPython 3.12.16 compiled from python.org's release tarball (sha256 from python.org's release API, scripts/cpython-pin.py) against Ubuntu 24.04's own libraries -- libssl3t64, libsqlite3-0, zlib1g, libexpat1, libffi8, liblzma5, libbz2-1.0, libuuid1, libzstd1, libncursesw6, libreadline8t64 -- which Ubuntu's security team maintains, the scan sees as debs, and apt upgrades fix (owner decision 2026-10-10, after python-build-standalone 20261009 was found to bundle SQLite 3.53.1 with two HIGH CVEs fixed upstream four months earlier). The vendor stage only fetches the tarball and the build toolchain's debs; the compile runs in the offline (--network=none) build, reproducibly (gen_dockerfile.cpython_build_cmd: SOURCE_DATE_EPOCH, no PGO/LTO, fixed --build triple and source path, stripped, checked-hash .pyc). Never built: _dbm, _gdbm, _tkinter (no Berkeley DB, GDBM or Tk); no test suite, idle, tkinter, turtledemo or static libpython in the image. mpdecimal is the copy in CPython's own source (noble has no libmpdec). Move the pin with scripts/cpython-pin.py --write for each CPython patch release."
+    },
+    "_source_note": "Source-rebuilt from the git tag in source.ref (GPL-3.0, latest GA). Frontend is NOT committed (src-ui gitignored) + there is NO pip package -> the vendor build MUST run the Angular build (pnpm 11.15.1 per src-ui/package.json packageManager + ng build, throwaway stage, zero runtime footprint). Python deps via uv export --extra postgres --extra webserver -> pip install, then `pip install --upgrade -r constraints.txt` (CVE floors, each with an upper bound no wider than upstream's own). Web server is granian (ASGI), not gunicorn. Lean levers: eng-only tesseract, postgres-only (no mariadb), flower dropped.",
+    "source_date_epoch": 1794578592,
+    "source_date_epoch_provenance": "the time release v3.4.1-CE-ubuntu24.04-r4 was cut (2026-11-13T14:03:12Z), by scripts/rerelease-agenda.py: ReadyStack dates an image by when its release was packaged (owner 2026-11-10), recorded here once and used by every rebuild of the release; it builds upstream commit b67cfdf3fdfc, dated 2026-10-31T05:20:31Z (source.commit_epoch).",
+    "commit": "b67cfdf3fdfcde4883c4ac136c8545835f679d21",
+    "source_date_epoch_basis": "release-cut",
+    "commit_epoch": 1793424031
+  },
+  "binaries_from_source": null,
+  "runtime_packages": null
+}
