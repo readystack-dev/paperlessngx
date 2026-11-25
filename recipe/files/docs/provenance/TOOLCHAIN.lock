@@ -1,11 +1,11 @@
 {
   "build_method": "source-rebuild-python",
-  "chain_id": 1091,
+  "chain_id": 1246,
   "dep_bumps": [],
   "expected_residuals": [],
   "images": [
     {
-      "digest": "sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5",
+      "digest": "sha256:9c7f200c07e3d4a03e7249d2c16bf66a51120fb876aa2242cf31451412543289",
       "ref": "ubuntu:24.04",
       "role": "base"
     }
@@ -24,9 +24,9 @@
     "python_version": "3.12",
     "ref": "v3.4.1",
     "repo": "https://github.com/paperless-ngx/paperless-ngx",
-    "source_date_epoch": 1794578592,
+    "source_date_epoch": 1795543328,
     "source_date_epoch_basis": "release-cut",
-    "source_date_epoch_provenance": "the time release v3.4.1-CE-ubuntu24.04-r4 was cut (2026-11-13T14:03:12Z), by scripts/rerelease-agenda.py: ReadyStack dates an image by when its release was packaged (owner 2026-11-10), recorded here once and used by every rebuild of the release; it builds upstream commit b67cfdf3fdfc, dated 2026-10-31T05:20:31Z (source.commit_epoch)."
+    "source_date_epoch_provenance": "the time release v3.4.1-CE-ubuntu24.04-r5 was cut (2026-11-24T18:02:08Z), by scripts/rerelease-agenda.py: ReadyStack dates an image by when its release was packaged (owner 2026-11-10), recorded here once and used by every rebuild of the release; it builds upstream commit b67cfdf3fdfc, dated 2026-10-31T05:20:31Z (source.commit_epoch)."
   },
   "version": "v3.4.1"
 }

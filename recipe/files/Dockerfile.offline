@@ -4,7 +4,7 @@
 # =====================================================================
 # CPython 3.12.16 COMPILED HERE, offline (--network=none), from python.org's tarball (sha256 re-checked) and
 # the vendored build debs, by the same command the vendor stage ran; linked against Ubuntu's libraries.
-FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5 AS cpython
+FROM ubuntu:24.04@sha256:9c7f200c07e3d4a03e7249d2c16bf66a51120fb876aa2242cf31451412543289 AS cpython
 ARG SOURCE_DATE_EPOCH=1791257664
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
 COPY vendored/paperlessngx-src/python/debs/ /tmp/cpython-debs/
@@ -31,7 +31,7 @@ RUN set --; for f in /tmp/cpython-debs/*.deb; do [ -e "$f" ] && set -- "$@" "$f"
 
 # Runtime: ubuntu:24.04, digest-pinned, + the interpreter compiled above; the vendored filesystem (which no longer
 # carries an interpreter) is laid over it, then site-packages, then the app.
-FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5
+FROM ubuntu:24.04@sha256:9c7f200c07e3d4a03e7249d2c16bf66a51120fb876aa2242cf31451412543289
 ARG SOURCE_DATE_EPOCH=1791257664
 ENV LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PNGX_CONTAINERIZED=1 PATH=/opt/venv/bin:$PATH PAPERLESS_OCR_LANGUAGE=eng
 COPY --from=cpython /usr/local/ /usr/local/
@@ -56,7 +56,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # the set a generated kit carries (gen_dockerfile.label_lines). Written by scripts/kit_migrations.py;
 # scripts/retarget.py re-renders it with every retarget. Never edit it by hand.
 LABEL org.opencontainers.image.title="Paperless-ngx"
-LABEL org.opencontainers.image.version="v3.4.1-CE-ubuntu24.04-r4"
+LABEL org.opencontainers.image.version="v3.4.1-CE-ubuntu24.04-r5"
 LABEL org.opencontainers.image.licenses="GPL-3.0-only"
 LABEL org.opencontainers.image.source="https://github.com/paperless-ngx/paperless-ngx"
 LABEL org.opencontainers.image.description="Paperless-ngx — the GPL-3.0 open-source document management system (Django)."

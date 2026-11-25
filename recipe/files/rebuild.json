@@ -1,9 +1,9 @@
 {
   "bases": [
     {
-      "digest": "sha256:77eb101c607d6e3d4f5ad0c8a02c2136c689b98aba1f359e6502ba517e5c57ec",
-      "layout": "bases/ubuntu_24.04_2198e4c65076.oci",
-      "ref": "ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5"
+      "digest": "sha256:9a04f13b3f80ef056361e30868593b1cfd2279fe19e4081cb93a90bf56819d6a",
+      "layout": "bases/ubuntu_24.04_9c7f200c07e3.oci",
+      "ref": "ubuntu:24.04@sha256:9c7f200c07e3d4a03e7249d2c16bf66a51120fb876aa2242cf31451412543289"
     }
   ],
   "engine": {
@@ -16,16 +16,16 @@
     "context": ".",
     "dockerfile": "Dockerfile.offline.pinned",
     "mtime_policy": "clamp",
-    "source_date_epoch": 1794578592,
-    "tree_hash": "sha256:a229353ea176a03d7af3603814a18bbdb2023053edbd3703592ac53b45230318"
+    "source_date_epoch": 1795543328,
+    "tree_hash": "sha256:95a03fa27f163b831338ad9482691e12c0063b96f31e221f2c1006f3369a49b7"
   },
   "probe": {
     "skip": "this image needs db, redis (not part of this archive); boot it with your own services as the admin handbook describes"
   },
   "schema": "readystack-rebuild-bundle/v0.1",
   "subject": {
-    "config_digest": "sha256:9cda8c2313ef1754708ccaddbf7271fbf6d88ea4b7363b3f6084831509b83132",
-    "image_manifest_digest": "sha256:cec5de8275724eba69dcb544071d8b91fbffba59a0285bcb7795be26630b377f",
-    "name": "docker.io/readystack/paperlessngx:v3.4.1-CE-ubuntu24.04-r4"
+    "config_digest": "sha256:6a72e640f4ff4b1f189ba8e2657a99521365d7466f17db9d85e73a4fc886c6e5",
+    "image_manifest_digest": "sha256:5ada00454ed0314a34445928cc82f12c5ec8e8059272a1c4e75e18c90759ba7d",
+    "name": "docker.io/readystack/paperlessngx:v3.4.1-CE-ubuntu24.04-r5"
   }
 }
